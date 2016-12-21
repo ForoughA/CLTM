@@ -1,0 +1,36 @@
+function distance = computeCondDistance2(joint_cond_prob_bij,cov_prob_Xk)
+
+M = size(joint_cond_prob_bij,1);
+Kn = length(cov_prob_Xk);% # of covariate states
+N = M/2;% # of nodes
+
+mar_prob = zeros(N,2,Kn);
+
+for k = 1:Kn
+    tmp = diag(joint_cond_prob_bij(:,:,k));
+    mar_prob(:,:,k) = reshape(tmp,2,N)';
+end
+
+K = size(mar_prob,2);
+distance = zeros(N);
+tiny = 1e-10;
+for i=1:N
+    for j=i+1:N
+        for k=1:Kn
+            joint_prob = joint_cond_prob_bij(K*(i-1)+1:K*i,K*(j-1)+1:K*j,k);
+            if ~isequal(joint_prob,[0,0;0,0])
+                distance(i,j) = distance(i,j) - ...
+                    log(abs(det(joint_prob))/sqrt(prod(mar_prob(i,:,k))*prod(mar_prob(j,:,k))+tiny)+tiny) * cov_prob_Xk(k);
+            end
+        end
+    end
+end
+mx = max(max(distance));
+for i=1:N
+    for j=i+1:N
+        if distance(i,j) == 0
+            distance(i,j) = 10*mx;
+        end
+    end
+end
+distance = distance + distance';

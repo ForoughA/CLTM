@@ -1,0 +1,126 @@
+% function distance = computeCondDistance(joint_cov_prob_xij,joint_cond_prob_bij,mar_cov_prob_xij,mar_cond_prob_bij)
+% 
+% M = size(joint_cov_prob_xij,1);
+% Kij = size(joint_cov_prob_xij,3);% # of covariates
+% N = M/2;% # of nodes
+% 
+% mar_cov_prob_xij = zeros(N,2,Kij);%2 is the number of states of each node
+% mar_cond_prob_bij = zeros(N,4,Kij);%4 is the number of states of each node given the covariate state
+% 
+% if nargin == 2
+%     for k = 1:Kij
+%         
+%         tmp = diag(joint_cov_prob_xij(:,:,k));
+%         mar_cov_prob_xij(:,:,k) = reshape(tmp,2,N)';%each row of the kth plane is: Pr(Xik = 0/1)
+%         
+%         tmp = diag(joint_cond_prob_bij(:,:,k));
+%         mar_cond_prob_bij(:,:,k) = reshape(tmp,4,N)';%each row of the kth plane is: Pr(bi = 0/1|Xik = 0/1)
+%         
+%     end
+% end
+% 
+% covStates = 2^Kij;%# of states of the covariates
+% distance = zeros(N,N,covStates);%distance is conditioned on the number of covariate states
+% % tiny = 1e-10;
+% 
+% for k = 1:covStates
+%     for i=1:N
+%         for j=i+1:N
+%             joint_prob = jointProb(K*(i-1)+1:K*i,K*(j-1)+1:K*j);
+%             distance(i,j,k) = sum();
+%         end
+%     end
+% end
+% 
+% mx = max(max(distance));
+% for i=1:N
+%     for j=i+1:N
+%         if distance(i,j) == 0
+%             distance(i,j) = 10*mx;
+%         end
+%     end
+% end
+% distance = distance + distance';
+% 
+% 
+% % K = size(mar_cov_prob_xijz,2);% # of states
+% % 
+% % distance = zeros(N);
+% % tiny = 1e-10;
+% % for i=1:N
+% %     for j=i+1:N
+% %         joint_prob = jointProb(K*(i-1)+1:K*i,K*(j-1)+1:K*j);
+% %         distance(i,j) = -log(abs(det(joint_prob))/sqrt(prod(marProb(i,:))*prod(marProb(j,:))+tiny)+tiny);
+% %     end
+% % end
+% % 
+% % distance = distance + distance';
+
+function distance = computeCondDistance(joint_cond_prob_bij,cov_prob_Xij)
+
+M = size(joint_cond_prob_bij,1);
+Kn = size(cov_prob_Xij,3);% # of covariate states
+N = M/4;% # of nodes
+
+mar_prob = zeros(N,4,Kn);
+
+for k = 1:Kn
+    for i = 1:N
+        tmp = diag(joint_cond_prob_bij(:,:,k));
+        mar_prob(:,:,k) = reshape(tmp,4,N)';
+    end
+end
+
+% K = size(mar_prob,2);
+K = 4;
+distance = zeros(N);
+tiny = 1e-10;
+for i=1:N
+    for j=i+1:N
+        joint = zeros(2,2,4);
+        for k=1:Kn
+            cov_prob = cov_prob_Xij(2*(i-1)+1:2*i,2*(j-1)+1:2*j,k)';
+            cov_prob = cov_prob(:);
+            joint_prob = joint_cond_prob_bij(K*(i-1)+1:K*i,K*(j-1)+1:K*j,k);
+            joint(:,:,1) = joint_prob([1,2],[1,2]);%P(bi,bj|Xi=0,Xj=0)
+            joint(:,:,2) = joint_prob([1,2],[3,4]);%P(bi,bj|Xi=0,Xj=1)
+            joint(:,:,3) = joint_prob([3,4],[1,2]);%P(bi,bj|Xi=1,Xj=0)
+            joint(:,:,4) = joint_prob([3,4],[3,4]);%P(bi,bj|Xi=1,Xj=1)
+            ctr = 1;
+            for n1 = 1:2
+                for n2 = 1:2
+                    Jij = det(joint(:,:,ctr));
+                    Mii = prod(mar_prob(i,2*(n1-1)+1:2*n1,k));
+                    Mjj = prod(mar_prob(j,2*(n2-1)+1:2*n2,k));
+                    if det(Jij)~=0% && prod(Mii)~=0 && prod(Mjj)~=0
+                        distance(i,j) = distance(i,j) - log(abs(det(Jij))/sqrt(Mii*Mjj+tiny)+tiny) * cov_prob(ctr);
+                    end
+                    ctr = ctr + 1;
+                end
+            end
+            
+            
+%             for ctr = 1:4
+%                 tmp = det(joint(:,:,ctr));
+%                 if tmp~=0
+%                     distance(i,j) = distance(i,j) - log(abs(tmp)/sqrt(prod(mar_prob(i,:,k))*prod(mar_prob(j,:,k))+tiny)+tiny) * cov_prob(ctr);
+%                 end
+%             end
+            
+            
+%             if ~isequal(joint_prob,zeros(4))
+%                 distance(i,j) = distance(i,j) - ...
+%                     log(abs(det(joint_prob))) * cov_prob_Xij(k);%/sqrt(prod(mar_prob(i,:,k))*prod(mar_prob(j,:,k))+tiny)+tiny) * cov_prob_Xij(k);
+%             end
+        end
+    end
+end 
+mx = max(max(distance));
+for i=1:N
+    for j=i+1:N
+        if distance(i,j) == 0
+            distance(i,j) = 10*mx;
+        end
+    end
+end
+distance = distance + distance';
