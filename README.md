@@ -9,3 +9,5 @@ Here is a list of documentation for the project:
   * Visualization: Check out [visualization1](http://newport.eecs.uci.edu/anandkumar/Lab/Lab_sub/Projects_sub/CLTM/dynamicTree.html) and [visualization2](http://newport.eecs.uci.edu/anandkumar/Lab/Lab_sub/Projects_sub/CLTM/stdPerformance.html) for a better understanding of the model.
   * [Blog post](https://blog.terminal.com/learning-latent-group-dynamics-for-prediction-of-high-dimensional-time-series/): Look at our blog post for a description of the project.
 
+This code uses the [UGM toolbox](http://www.cs.ubc.ca/~schmidtm/Software/UGM.html):
+M. Schmidt. UGM: A Matlab toolbox for probabilistic undirected graphical models. http://www.cs.ubc.ca/~schmidtm/Software/UGM.html, 2007.
